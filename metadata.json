@@ -1,0 +1,6 @@
+{
+  "name": "FlowForge",
+  "description": "A flowchart builder where users create flowcharts by filling a form, rather than dragging shapes manually.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
