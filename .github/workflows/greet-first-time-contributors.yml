@@ -1,0 +1,23 @@
+name: Greet First-Time Contributors
+
+on:
+  issues:
+    types: [opened]
+  pull_request_target:
+    types: [opened]
+
+permissions:
+  issues: write
+  pull-requests: write
+
+jobs:
+  greeting:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/first-interaction@v1
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          issue-message: >
+            👋 Welcome, and thanks for opening your first issue in FlowCraft! If you're contributing through **ELUSOC**, make sure the Program field above reflects that. Take a look at our [Contributing Guide](../CONTRIBUTING.md) if anything's unclear, and feel free to comment `/assign` here if you'd like to work on it yourself.
+          pr-message: >
+            🎉 Thanks for your first pull request to FlowCraft! A couple of quick checks before a maintainer reviews it: make sure your description includes something like `Closes #12` to link the issue it resolves, and double-check the [Contributing Guide](../CONTRIBUTING.md) for our PR checklist. We'll take a look soon!
