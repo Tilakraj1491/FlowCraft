@@ -11,6 +11,7 @@ import Toast from './components/Toast';
 import { Block, ToastConfig, LayoutDirection } from './types';
 import { useDarkMode } from './utils/useDarkMode';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
+import { socket, debounce } from './utils/socket';
 
 // Default blueprint layout tracking
 const initialDemoBlocks: Block[] = [
@@ -335,45 +336,40 @@ export default function App() {
 
     let updated = [...blocks];
     let insertedTargetId: string | undefined = undefined;
+    let modifiedActiveBlock: Block | undefined = undefined;
 
-      if (activeParentId) {
-        const activeIdx = updated.findIndex((b) => b.id === activeParentId);
-        if (activeIdx !== -1) {
-          const activeBlock = updated[activeIdx];
-          if (activeBlock.type === 'decision') {
-            if (!activeBlock.yesTargetId) {
-              modifiedActiveBlock = { ...activeBlock, yesTargetId: newId };
-            } else if (!activeBlock.noTargetId) {
-              modifiedActiveBlock = { ...activeBlock, noTargetId: newId };
-            }
+    if (activeParentId) {
+      const activeIdx = updated.findIndex((b) => b.id === activeParentId);
+      if (activeIdx !== -1) {
+        const activeBlock = updated[activeIdx];
+        if (activeBlock.type === 'decision') {
+          if (!activeBlock.yesTargetId) {
+            modifiedActiveBlock = { ...activeBlock, yesTargetId: newId };
+          } else if (!activeBlock.noTargetId) {
+            modifiedActiveBlock = { ...activeBlock, noTargetId: newId };
+          }
+        } else {
+          if (!activeBlock.targetId) {
+            modifiedActiveBlock = { ...activeBlock, targetId: newId };
           } else {
-            if (!activeBlock.targetId) {
-              modifiedActiveBlock = { ...activeBlock, targetId: newId };
-            } else {
-              insertedTargetId = activeBlock.targetId;
-              modifiedActiveBlock = { ...activeBlock, targetId: newId };
-            }
+            insertedTargetId = activeBlock.targetId;
+            modifiedActiveBlock = { ...activeBlock, targetId: newId };
           }
         }
       }
+    }
 
-      const newBlock: Block = { ...blockData, id: newId, targetId: insertedTargetId };
+    const newBlock: Block = { ...blockData, id: newId, targetId: insertedTargetId };
 
-      if (modifiedActiveBlock) {
-        const activeIdx = updated.findIndex((b) => b.id === activeParentId);
-        if (activeIdx !== -1) updated[activeIdx] = modifiedActiveBlock;
-      }
+    if (modifiedActiveBlock) {
+      const activeIdx = updated.findIndex((b) => b.id === activeParentId);
+      if (activeIdx !== -1) updated[activeIdx] = modifiedActiveBlock;
+    }
 
-      return { nextBlocks: [...updated, newBlock], newBlock, modifiedActiveBlock };
-    };
+    pushState([...updated, newBlock]);
 
-    let emitNewBlock: Block | undefined;
-    let emitModifiedBlock: Block | undefined;
-
-      pushState([...updated, newBlock]);
-
-    if (emitNewBlock) socket.emit('add-block', emitNewBlock);
-    if (emitModifiedBlock) socket.emit('update-block', emitModifiedBlock);
+    if (newBlock) socket.emit('add-block', newBlock);
+    if (modifiedActiveBlock) socket.emit('update-block', modifiedActiveBlock);
 
     // Automatically set the new block as the active parent for sequential additions
     setActiveParentId(newId);
@@ -390,7 +386,6 @@ export default function App() {
 
   // Delete block
   const handleDeleteBlock = (id: string) => {
-    emitUpdateDebounced.flush();
     const block = blocks.find((b) => b.id === id);
     if (!block) return;
 
@@ -424,17 +419,15 @@ export default function App() {
 
     const newId = `block-${crypto.randomUUID()}`;
     const duplicatedBlock: Block = {
-      ...original,
+      ...targetBlock,
       id: newId,
-      label: `${original.label} (Copy)`,
+      label: `${targetBlock.label} (Copy)`,
       // Inherit forward-pointer only for non-decision blocks
-      targetId: original.type !== 'decision' ? original.targetId : undefined,
+      targetId: targetBlock.type !== 'decision' ? targetBlock.targetId : undefined,
       // Clear branch pointers — the duplicate is not wired yet
       yesTargetId: undefined,
       noTargetId: undefined,
     };
-    const modifiedOriginal: Block | undefined =
-      original.type !== 'decision' ? { ...original, targetId: newId } : undefined;
 
     const idx = blocks.findIndex((b) => b.id === id);
     if (idx === -1) {
@@ -443,15 +436,16 @@ export default function App() {
     }
 
     const updated = [...blocks];
-    if (original.type !== 'decision') {
-      duplicatedBlock.targetId = original.targetId;
-      updated[idx] = { ...original, targetId: newId };
+    if (targetBlock.type !== 'decision') {
+      duplicatedBlock.targetId = targetBlock.targetId;
+      updated[idx] = { ...targetBlock, targetId: newId };
     }
 
     updated.splice(idx + 1, 0, duplicatedBlock);
     pushState(updated);
 
     setSelectedBlockId(newId);
+    const canAcceptChild = duplicatedBlock.type !== 'terminator';
     if (canAcceptChild) {
       setActiveParentId(newId);
     } else {

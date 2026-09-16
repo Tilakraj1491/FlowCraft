@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useCallback, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { 
   Play, 
@@ -33,11 +33,13 @@ import { jsPDF } from 'jspdf';
 import pptxgen from 'pptxgenjs';
 import { Block, CanvasNode, LayoutDirection } from '../types';
 import { calculateLayout, calculateConnections, NODE_WIDTH, NODE_HEIGHT, DIAMOND_SIZE } from '../utils/layout';
+import { socket } from '../utils/socket';
 
 interface CenterCanvasProps {
   blocks: Block[];
   selectedBlockId: string | null;
   onSelectBlock: (id: string) => void;
+  onUpdateBlock?: (updatedBlock: Block) => void;
   onSave: (name: string) => void;
   onLoad: (name: string) => void;
   onDeleteWorkspace: (name: string) => void;
@@ -339,8 +341,8 @@ export default function CenterCanvas({
   const minHeight = 800;
   let minLayoutX = 0;
   let minLayoutY = 0;
-  let maxLayoutX = MIN_WIDTH;
-  let maxLayoutY = MIN_HEIGHT;
+  let maxLayoutX = minWidth;
+  let maxLayoutY = minHeight;
 
   nodes.forEach(node => {
     minLayoutX = Math.min(minLayoutX, node.x);
@@ -992,9 +994,6 @@ export default function CenterCanvas({
                       key={node.block.id}
                       id={`flow-node-${node.block.id}`}
                       onClick={() => onSelectBlock(node.block.id)}
-                      onPointerDown={(e) => handleNodePointerDown(e, node)}
-                      onPointerMove={(e) => handleNodePointerMove(e, node.block.id)}
-                      onPointerUp={handleNodePointerUp}
                       style={{
                         left: `${node.x}px`,
                         top: `${node.y}px`,
@@ -1045,9 +1044,6 @@ export default function CenterCanvas({
                       key={node.block.id}
                       id={`flow-node-${node.block.id}`}
                       onClick={() => onSelectBlock(node.block.id)}
-                      onPointerDown={(e) => handleNodePointerDown(e, node)}
-                      onPointerMove={(e) => handleNodePointerMove(e, node.block.id)}
-                      onPointerUp={handleNodePointerUp}
                       style={{
                         left: `${node.x}px`,
                         top: `${node.y}px`,
@@ -1090,9 +1086,6 @@ export default function CenterCanvas({
                     key={node.block.id}
                     id={`flow-node-${node.block.id}`}
                     onClick={() => onSelectBlock(node.block.id)}
-                    onPointerDown={(e) => handleNodePointerDown(e, node)}
-                    onPointerMove={(e) => handleNodePointerMove(e, node.block.id)}
-                    onPointerUp={handleNodePointerUp}
                     style={{
                       left: `${node.x}px`,
                       top: `${node.y}px`,

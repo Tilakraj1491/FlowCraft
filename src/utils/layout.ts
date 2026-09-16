@@ -427,6 +427,7 @@ export function calculateConnections(nodes: CanvasNode[], layoutDirection: Layou
             endY,
           });
         }
+      }
 
       // NO BRANCH
       if (block.noTargetId) {

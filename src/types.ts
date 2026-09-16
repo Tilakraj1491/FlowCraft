@@ -24,6 +24,8 @@ export interface Block {
   groupId?: string;      // Optional parent group ID
   groupLabel?: string;   // Optional parent group label
   isGroupCollapsed?: boolean; // Optional group collapse state
+  branches?: Branch[];   // Optional custom branches
+  positionOffset?: { x: number; y: number }; // Optional layout position offset
 }
 
 export interface CanvasNode {

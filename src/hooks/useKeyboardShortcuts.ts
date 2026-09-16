@@ -87,7 +87,7 @@ export function useKeyboardShortcuts({
 
       // If user is currently typing in a form input, skip global shortcuts
       // (allows Ctrl+Z / Ctrl+Y to use browser-native text field undo/redo)
-      if (isInput) return;
+      if (isInteractiveElement(target)) return;
 
       // Undo shortcut: Ctrl + Z / Cmd + Z
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && !e.shiftKey) {
